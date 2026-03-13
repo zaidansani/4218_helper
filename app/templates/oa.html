@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Orthogonal Array Analyser</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: monospace; max-width: 900px; margin: 40px auto; padding: 0 20px; background: #0f0f0f; color: #d4d4d4; }
+    a { color: #888; text-decoration: none; }
+    a:hover { color: #e8c76a; }
+    h1 { color: #e8c76a; }
+    h2 { color: #c0c0c0; font-size: 1em; text-transform: uppercase; letter-spacing: 1px; margin-top: 32px; }
+
+    button {
+      background: #1e1e1e; border: 1px solid #444; color: #d4d4d4;
+      padding: 6px 14px; border-radius: 4px; cursor: pointer; font-family: monospace;
+    }
+    button:hover { border-color: #e8c76a; color: #e8c76a; }
+    button.primary { border-color: #e8c76a; color: #e8c76a; }
+    button.danger   { border-color: #e06c75; color: #e06c75; }
+
+    .grid-controls { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+    .grid-controls label { color: #888; font-size: 0.85em; }
+    .grid-controls input[type=number] {
+      width: 60px; background: #1a1a1a; border: 1px solid #333; color: #d4d4d4;
+      padding: 4px 6px; border-radius: 4px; font-family: monospace;
+    }
+
+    /* Editable grid */
+    #oa-grid { overflow-x: auto; margin-bottom: 12px; }
+    #oa-grid table { border-collapse: collapse; }
+    #oa-grid th {
+      background: #1e1e1e; color: #888; padding: 4px 10px;
+      border: 1px solid #2a2a2a; font-weight: normal; font-size: 0.8em;
+    }
+    #oa-grid td { border: 1px solid #2a2a2a; padding: 0; }
+    #oa-grid input {
+      width: 48px; background: transparent; border: none;
+      text-align: center; padding: 5px 4px; font-family: monospace; font-size: 0.95em;
+      font-weight: bold; outline: none; transition: color 0.1s;
+    }
+    #oa-grid input:focus { background: #1e1e1e; }
+    #oa-grid tr:nth-child(even) td { background: #141414; }
+
+    #error { color: #e06c75; margin-top: 12px; }
+
+    /* Results */
+    #results { margin-top: 32px; display: none; }
+
+    .summary-box {
+      background: #161616; border: 1px solid #333; border-radius: 6px;
+      padding: 16px; margin-bottom: 16px;
+    }
+    .notation-row { display: flex; gap: 32px; flex-wrap: wrap; margin-bottom: 12px; }
+    .notation-row .block { display: flex; flex-direction: column; }
+    .notation-row .key { color: #888; font-size: 0.8em; margin-bottom: 2px; }
+    .notation-row .val { color: #e8c76a; font-size: 1.3em; }
+    .notation-row .val.bad { color: #e06c75; }
+
+    .props-grid { display: grid; grid-template-columns: repeat(4, auto); gap: 4px 24px; }
+    .props-grid .pk { color: #888; font-size: 0.8em; }
+    .props-grid .pv { color: #c0c0c0; }
+
+    .strength-table { margin-top: 16px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 0.88em; }
+    th { background: #1e1e1e; color: #888; font-weight: normal; padding: 6px 12px; border: 1px solid #2a2a2a; text-align: left; }
+    td { padding: 5px 12px; border: 1px solid #2a2a2a; }
+    tr:nth-child(even) td { background: #141414; }
+    .ok  { color: #98c379; }
+    .bad { color: #e06c75; }
+
+    .errors-box { background: #1a1010; border: 1px solid #5a2020; border-radius: 4px; padding: 12px; margin-top: 12px; }
+    .errors-box ul { margin: 0; padding-left: 18px; color: #e06c75; font-size: 0.88em; }
+  </style>
+</head>
+<body>
+  <p><a href="/">← home</a></p>
+  <h1>Orthogonal Array Analyser</h1>
+  <p style="color:#888">Enter your array below. Each cell is an integer symbol (e.g. 1/2 or 1/2/3). Symbols are coloured automatically.</p>
+
+  <div class="grid-controls">
+    <label>Rows (N): <input type="number" id="ctrl-rows" min="1" max="100" value="8"></label>
+    <label>Columns (k): <input type="number" id="ctrl-cols" min="1" max="20" value="4"></label>
+    <button onclick="resizeGrid()">Resize</button>
+    <button onclick="fillExample('L8')">Load example (L8)</button>
+    <button onclick="fillExample('L9')">Load example (L9)</button>
+    <button class="danger" onclick="clearGrid()">Clear</button>
+  </div>
+
+  <div id="oa-grid"></div>
+
+  <div style="display:flex;gap:8px">
+    <button class="primary" onclick="analyse()">Analyse</button>
+  </div>
+  <div id="error"></div>
+
+  <div id="results">
+    <div class="summary-box">
+      <div class="notation-row" id="notations"></div>
+      <div class="props-grid" id="props"></div>
+    </div>
+
+    <div class="strength-table">
+      <h2>Strength checks</h2>
+      <table id="strength-table">
+        <thead><tr><th>t</th><th>Valid OA at t?</th><th>Index λ</th><th>Notes</th></tr></thead>
+        <tbody id="strength-tbody"></tbody>
+      </table>
+    </div>
+
+    <div id="errors-section"></div>
+  </div>
+
+<script>
+let ROWS = 8, COLS = 4;
+
+// Colour palette — one colour per distinct symbol value
+const SYMBOL_COLOURS = [
+  "#e8c76a", // 1 — yellow
+  "#56b6c2", // 2 — cyan
+  "#98c379", // 3 — green
+  "#e06c75", // 4 — red
+  "#c678dd", // 5 — purple
+  "#d19a66", // 6 — orange
+  "#61afef", // 7 — blue
+  "#be5046", // 8 — dark red
+  "#2bbac5", // 9 — teal
+];
+
+function symbolColour(val) {
+  // Map symbol value (1-based integer) to a colour
+  const idx = (val - 1) % SYMBOL_COLOURS.length;
+  return SYMBOL_COLOURS[Math.max(0, idx)];
+}
+
+function recolourAll() {
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const el = document.getElementById(`cell-${r}-${c}`);
+      if (!el) continue;
+      const v = parseInt(el.value);
+      el.style.color = isNaN(v) ? "#d4d4d4" : symbolColour(v);
+    }
+  }
+}
+
+function buildGrid(rows, cols) {
+  ROWS = rows; COLS = cols;
+  const container = document.getElementById("oa-grid");
+  const colHeaders = Array.from({length: cols}, (_, i) => `<th>C${i+1}</th>`).join("");
+  const bodyRows = Array.from({length: rows}, (_, r) =>
+    `<tr><th>R${r+1}</th>` +
+    Array.from({length: cols}, (_, c) =>
+      `<td><input type="number" min="1" max="99" id="cell-${r}-${c}" value="1"
+        oninput="this.style.color=symbolColour(parseInt(this.value)||1)"></td>`
+    ).join("") +
+    `</tr>`
+  ).join("");
+  container.innerHTML = `<table>
+    <thead><tr><th></th>${colHeaders}</tr></thead>
+    <tbody>${bodyRows}</tbody>
+  </table>`;
+  recolourAll();
+}
+
+function resizeGrid() {
+  const rows = parseInt(document.getElementById("ctrl-rows").value);
+  const cols = parseInt(document.getElementById("ctrl-cols").value);
+  const old = getArray();
+  buildGrid(rows, cols);
+  for (let r = 0; r < Math.min(rows, old.length); r++) {
+    for (let c = 0; c < Math.min(cols, (old[r]||[]).length); c++) {
+      const el = document.getElementById(`cell-${r}-${c}`);
+      el.value = old[r][c];
+      el.style.color = symbolColour(old[r][c]);
+    }
+  }
+}
+
+function clearGrid() {
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++) {
+      const el = document.getElementById(`cell-${r}-${c}`);
+      el.value = 1;
+      el.style.color = symbolColour(1);
+    }
+}
+
+function setArray(data) {
+  const rows = data.length, cols = data[0].length;
+  document.getElementById("ctrl-rows").value = rows;
+  document.getElementById("ctrl-cols").value = cols;
+  buildGrid(rows, cols);
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      const el = document.getElementById(`cell-${r}-${c}`);
+      el.value = data[r][c];
+      el.style.color = symbolColour(data[r][c]);
+    }
+}
+
+const EXAMPLES = {
+  L8: [
+    [1,1,1,1,1,1,1],
+    [1,1,1,2,2,2,2],
+    [1,2,2,1,1,2,2],
+    [1,2,2,2,2,1,1],
+    [2,1,2,1,2,1,2],
+    [2,1,2,2,1,2,1],
+    [2,2,1,1,2,2,1],
+    [2,2,1,2,1,1,2],
+  ],
+  L9: [
+    [1,1,1,1],
+    [1,2,2,2],
+    [1,3,3,3],
+    [2,1,2,3],
+    [2,2,3,1],
+    [2,3,1,2],
+    [3,1,3,2],
+    [3,2,1,3],
+    [3,3,2,1],
+  ],
+};
+
+function fillExample(name) {
+  setArray(EXAMPLES[name]);
+}
+
+function getArray() {
+  const arr = [];
+  for (let r = 0; r < ROWS; r++) {
+    const row = [];
+    for (let c = 0; c < COLS; c++) {
+      const el = document.getElementById(`cell-${r}-${c}`);
+      row.push(el ? parseInt(el.value) : 1);
+    }
+    arr.push(row);
+  }
+  return arr;
+}
+
+async function analyse() {
+  document.getElementById("error").textContent = "";
+  document.getElementById("errors-section").innerHTML = "";
+  const array = getArray();
+
+  const resp = await fetch("/api/oa", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({array}),
+  });
+  const data = await resp.json();
+
+  if (data.error) {
+    document.getElementById("error").textContent = data.error;
+    return;
+  }
+
+  renderResults(data);
+}
+
+function renderResults(d) {
+  document.getElementById("results").style.display = "block";
+
+  const badClass = d.is_valid_oa ? "" : " bad";
+
+  document.getElementById("notations").innerHTML = `
+    <div class="block">
+      <span class="key">OA Notation</span>
+      <span class="val${badClass}">${d.oa_notation}</span>
+    </div>
+    <div class="block">
+      <span class="key">L Notation</span>
+      <span class="val${badClass}">${d.l_notation}</span>
+    </div>
+    <div class="block">
+      <span class="key">Index (λ)</span>
+      <span class="val${badClass}">${d.index !== null ? d.index : "—"}</span>
+    </div>
+  `;
+
+  document.getElementById("props").innerHTML = `
+    <span class="pk">N (runs)</span>    <span class="pv">${d.N}</span>
+    <span class="pk">k (factors)</span> <span class="pv">${d.k}</span>
+    <span class="pk">s (levels)</span>  <span class="pv">${d.s !== null ? d.s : "mixed"}</span>
+    <span class="pk">t (strength)</span><span class="pv">${d.strength || "—"}</span>
+  `;
+
+  // Strength table
+  const tbody = document.getElementById("strength-tbody");
+  tbody.innerHTML = d.strength_checks.map(sc => {
+    const cls = sc.valid ? "ok" : "bad";
+    const symbol = sc.valid ? "✓" : "✗";
+    return `<tr>
+      <td>${sc.t}</td>
+      <td class="${cls}">${symbol} ${sc.valid ? "Yes" : "No"}</td>
+      <td>${sc.lambda !== null ? sc.lambda : "—"}</td>
+      <td style="color:#666;font-size:0.85em">${sc.detail}</td>
+    </tr>`;
+  }).join("");
+
+  // Errors
+  if (d.errors && d.errors.length) {
+    document.getElementById("errors-section").innerHTML =
+      `<div class="errors-box"><ul>` +
+      d.errors.map(e => `<li>${e}</li>`).join("") +
+      `</ul></div>`;
+  }
+}
+
+// Init
+buildGrid(ROWS, COLS);
+</script>
+</body>
+</html>

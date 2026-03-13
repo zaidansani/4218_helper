@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>T-way Covering Array</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: monospace; max-width: 900px; margin: 40px auto; padding: 0 20px; background: #0f0f0f; color: #d4d4d4; }
+    a { color: #888; text-decoration: none; }
+    a:hover { color: #e8c76a; }
+    h1 { color: #e8c76a; }
+    h2 { color: #c0c0c0; font-size: 1em; text-transform: uppercase; letter-spacing: 1px; margin-top: 32px; }
+
+    label { color: #888; font-size: 0.85em; }
+    input[type=number], input[type=text] {
+      background: #1a1a1a; border: 1px solid #333; color: #d4d4d4;
+      padding: 5px 8px; border-radius: 4px; font-family: monospace;
+    }
+    input[type=number] { width: 70px; }
+    input[type=text]   { width: 160px; }
+
+    #factors-container { margin: 16px 0; display: flex; flex-direction: column; gap: 8px; }
+    .factor-row { display: flex; gap: 12px; align-items: center; }
+    .factor-row .lbl { color: #888; min-width: 60px; }
+
+    button {
+      background: #1e1e1e; border: 1px solid #444; color: #d4d4d4;
+      padding: 6px 14px; border-radius: 4px; cursor: pointer; font-family: monospace;
+    }
+    button:hover { border-color: #e8c76a; color: #e8c76a; }
+    button.primary { border-color: #e8c76a; color: #e8c76a; }
+
+    #error { color: #e06c75; margin-top: 12px; }
+
+    /* Results */
+    #results { margin-top: 32px; display: none; }
+
+    .summary-box {
+      background: #161616; border: 1px solid #333; border-radius: 6px;
+      padding: 16px; margin-bottom: 16px;
+    }
+    .summary-box .kv { display: flex; gap: 16px; flex-wrap: wrap; }
+    .summary-box .kv div { display: flex; flex-direction: column; }
+    .summary-box .kv .key { color: #888; font-size: 0.8em; }
+    .summary-box .kv .val { color: #e8c76a; font-size: 1.1em; }
+
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 0.88em; }
+    th { background: #1e1e1e; color: #888; font-weight: normal; padding: 6px 12px; border: 1px solid #2a2a2a; text-align: left; }
+    td { padding: 5px 12px; border: 1px solid #2a2a2a; }
+    tr:nth-child(even) td { background: #141414; }
+
+    .proof-section { margin-top: 16px; }
+    .proof-line { padding: 3px 0; font-size: 0.88em; color: #a0a0a0; }
+    .proof-line .tuple { color: #56b6c2; }
+    .proof-line .tc-label { color: #888; }
+    .proof-line .hi { color: #e8c76a; font-weight: bold; }
+    .proof-line .missing { color: #e06c75; }
+    .coverage-summary { margin-top: 12px; color: #888; font-size: 0.85em; }
+    .coverage-summary .ok  { color: #98c379; }
+    .coverage-summary .bad { color: #e06c75; }
+
+    .tab-bar { display: flex; gap: 0; margin-top: 24px; border-bottom: 1px solid #333; }
+    .tab { padding: 8px 18px; cursor: pointer; color: #888; border: 1px solid transparent; border-bottom: none; font-family: monospace; }
+    .tab.active { color: #e8c76a; border-color: #333; background: #161616; margin-bottom: -1px; }
+    .tab-panel { display: none; background: #161616; border: 1px solid #333; border-top: none; padding: 16px; }
+    .tab-panel.active { display: block; }
+  </style>
+</head>
+<body>
+  <p><a href="/">← home</a></p>
+  <h1>T-way Covering Array Generator</h1>
+
+  <div>
+    <label>Covering strength (t):&nbsp;
+      <input type="number" id="strength" min="2" max="6" value="2">
+    </label>
+  </div>
+
+  <h2>Factors</h2>
+  <div id="factors-container"></div>
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <button onclick="addFactor()">+ Add factor</button>
+    <button onclick="removeFactor()">− Remove factor</button>
+  </div>
+
+  <div style="margin-top:20px">
+    <button class="primary" onclick="generate()">Generate</button>
+  </div>
+  <div id="error"></div>
+
+  <div id="results">
+    <div class="summary-box">
+      <div class="kv" id="summary-kv"></div>
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab active" onclick="showTab('tab-symbolic')">Symbolic view</div>
+      <div class="tab" onclick="showTab('tab-table')">Table view</div>
+    </div>
+    <div id="tab-symbolic" class="tab-panel active">
+      <h2 style="margin-top:8px">Test Cases</h2>
+      <div id="tc-list"></div>
+      <h2>Coverage Proof</h2>
+      <div id="proof-list" class="proof-section"></div>
+      <div id="coverage-summary" class="coverage-summary"></div>
+    </div>
+    <div id="tab-table" class="tab-panel">
+      <div id="table-container"></div>
+    </div>
+  </div>
+
+<script>
+let factorCount = 0;
+
+function addFactor() {
+  factorCount++;
+  const idx = factorCount;
+  const div = document.createElement("div");
+  div.className = "factor-row";
+  div.id = `factor-${idx}`;
+  div.innerHTML = `
+    <span class="lbl">Factor ${idx}</span>
+    <input type="text" placeholder="Name (optional)" class="fname">
+    <label>Levels: <input type="number" min="2" max="20" value="2" class="flevels"></label>
+  `;
+  document.getElementById("factors-container").appendChild(div);
+}
+
+function removeFactor() {
+  const c = document.getElementById("factors-container");
+  if (c.children.length > 0) {
+    c.removeChild(c.lastChild);
+    factorCount--;
+  }
+}
+
+function showTab(id) {
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  const idx = ["tab-symbolic","tab-table"].indexOf(id);
+  document.querySelectorAll(".tab")[idx].classList.add("active");
+}
+
+function getFactors() {
+  const rows = document.querySelectorAll(".factor-row");
+  return Array.from(rows).map(row => ({
+    name: row.querySelector(".fname").value.trim(),
+    levels: parseInt(row.querySelector(".flevels").value),
+  }));
+}
+
+async function generate() {
+  document.getElementById("error").textContent = "";
+  const strength = parseInt(document.getElementById("strength").value);
+  const factors = getFactors();
+
+  if (factors.length < strength) {
+    document.getElementById("error").textContent =
+      `Need at least ${strength} factors for ${strength}-way testing.`;
+    return;
+  }
+
+  const resp = await fetch("/api/tway", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({strength, factors}),
+  });
+  const data = await resp.json();
+
+  if (data.error) {
+    document.getElementById("error").textContent = data.error;
+    return;
+  }
+
+  renderResults(data);
+}
+
+function renderResults(r) {
+  document.getElementById("results").style.display = "block";
+
+  // Summary
+  document.getElementById("summary-kv").innerHTML = `
+    <div><span class="key">Strength</span><span class="val">t = ${r.strength} (${r.strength_name})</span></div>
+    <div><span class="key">Factors</span><span class="val">${r.n_factors}</span></div>
+    <div><span class="key">Test cases</span><span class="val">${r.test_cases.length}</span></div>
+    <div><span class="key">Total tuples</span><span class="val">${r.total_tuples}</span></div>
+    <div><span class="key">Coverage</span><span class="val">${r.total_tuples - r.missing_tuples}/${r.total_tuples}</span></div>
+  `;
+
+  // Legend
+  const legendLines = r.factor_names.map((name, i) =>
+    `${r.letters[i]} = ${name} (${r.levels_per_factor[i]} levels)`
+  ).join("  |  ");
+
+  // Test case list
+  const tcList = document.getElementById("tc-list");
+  tcList.innerHTML = `<div style="color:#888;font-size:0.8em;margin-bottom:8px">${legendLines}</div>` +
+    r.test_cases.map(tc =>
+      `<div class="proof-line"><span class="tc-label">T${tc.index}:</span> ${tc.symbolic}</div>`
+    ).join("");
+
+  // Coverage proof
+  const proofList = document.getElementById("proof-list");
+  proofList.innerHTML = r.coverage.map(entry => {
+    const tupleSpan = `<span class="tuple">${entry.tuple_str}</span>`;
+    if (!entry.covered_by.length) {
+      return `<div class="proof-line">${tupleSpan} → <span class="missing">** MISSING **</span></div>`;
+    }
+    const byParts = entry.covered_by.map(cb => {
+      const hiFactors = new Set(entry.factors);
+      const rendered = "(" + cb.parts.map(p =>
+        p.highlight ? `<span class="hi">${p.label}</span>` : p.label
+      ).join(", ") + ")";
+      return `<span class="tc-label">T${cb.index}:</span> ${rendered}`;
+    }).join(", ");
+    return `<div class="proof-line">${tupleSpan} → covered by ${byParts}</div>`;
+  }).join("");
+
+  // Coverage summary
+  const ok = r.missing_tuples === 0;
+  document.getElementById("coverage-summary").innerHTML =
+    `<span class="${ok ? 'ok' : 'bad'}">` +
+    `${r.total_tuples - r.missing_tuples}/${r.total_tuples} tuples covered` +
+    (ok ? " — all covered ✓" : ` — ${r.missing_tuples} MISSING ✗`) +
+    `</span>`;
+
+  // Table view
+  const tableContainer = document.getElementById("table-container");
+  const headers = ["Test", ...r.factor_names];
+  const rows = r.test_cases.map(tc => [`T${tc.index}`, ...tc.values.map(v => v + 1)]);
+  tableContainer.innerHTML = buildTable(headers, rows);
+}
+
+const SYMBOL_COLOURS = [
+  "#e06c75", "#e8c76a", "#98c379", "#56b6c2", "#c678dd",
+  "#61afef", "#d19a66", "#e5c07b", "#be5046", "#2bbac5",
+];
+
+function valueColour(val) {
+  // val is 1-based; map to palette
+  const idx = (val - 1) % SYMBOL_COLOURS.length;
+  return SYMBOL_COLOURS[Math.max(0, idx)];
+}
+
+function buildTable(headers, rows) {
+  const ths = headers.map(h => `<th>${h}</th>`).join("");
+  const trs = rows.map(row =>
+    "<tr>" + row.map((c, ci) => {
+      // First column is "T1", "T2" etc — no colouring
+      if (ci === 0) return `<td>${c}</td>`;
+      const colour = valueColour(typeof c === "number" ? c : parseInt(c));
+      return `<td style="color:${colour}">${c}</td>`;
+    }).join("") + "</tr>"
+  ).join("");
+  return `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+}
+
+// Init with 3 factors
+addFactor(); addFactor(); addFactor();
+</script>
+</body>
+</html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mixed OA Analyser</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: monospace; max-width: 960px; margin: 40px auto; padding: 0 20px; background: #0f0f0f; color: #d4d4d4; }
+    a { color: #888; text-decoration: none; }
+    a:hover { color: #e8c76a; }
+    h1 { color: #e8c76a; }
+    h2 { color: #c0c0c0; font-size: 1em; text-transform: uppercase; letter-spacing: 1px; margin-top: 32px; }
+
+    label { color: #888; font-size: 0.85em; }
+    input[type=number] {
+      background: #1a1a1a; border: 1px solid #333; color: #d4d4d4;
+      padding: 4px 6px; border-radius: 4px; font-family: monospace;
+    }
+
+    button {
+      background: #1e1e1e; border: 1px solid #444; color: #d4d4d4;
+      padding: 6px 14px; border-radius: 4px; cursor: pointer; font-family: monospace;
+    }
+    button:hover { border-color: #e8c76a; color: #e8c76a; }
+    button.primary { border-color: #e8c76a; color: #e8c76a; }
+    button.danger   { border-color: #e06c75; color: #e06c75; }
+
+    /* Groups input */
+    #groups-container { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
+    .group-row { display: flex; gap: 10px; align-items: center; }
+    .group-row .glbl { color: #888; min-width: 56px; }
+    .group-row input[type=number] { width: 62px; }
+    .group-swatch { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+
+    /* Grid */
+    #moa-grid { overflow-x: auto; margin-bottom: 12px; }
+    #moa-grid table { border-collapse: collapse; }
+    #moa-grid th {
+      background: #1e1e1e; color: #888; padding: 4px 10px;
+      border: 1px solid #2a2a2a; font-weight: normal; font-size: 0.8em;
+    }
+    #moa-grid td { border: 1px solid #2a2a2a; padding: 0; }
+    #moa-grid input {
+      width: 48px; background: transparent; border: none;
+      text-align: center; padding: 5px 4px; font-family: monospace; font-size: 0.95em;
+      font-weight: bold; outline: none; transition: color 0.1s;
+    }
+    #moa-grid input:focus { background: #1e1e1e; }
+    #moa-grid tr:nth-child(even) td { background: #141414; }
+
+    /* Group header colour bands */
+    .gh-band { border-bottom: 2px solid; padding-bottom: 3px; }
+
+    #error { color: #e06c75; margin-top: 12px; }
+
+    /* Results */
+    #results { margin-top: 32px; display: none; }
+    .summary-box {
+      background: #161616; border: 1px solid #333; border-radius: 6px;
+      padding: 16px; margin-bottom: 16px;
+    }
+    .notation-row { display: flex; gap: 32px; flex-wrap: wrap; margin-bottom: 12px; }
+    .notation-row .block { display: flex; flex-direction: column; }
+    .notation-row .key { color: #888; font-size: 0.8em; margin-bottom: 2px; }
+    .notation-row .val { color: #e8c76a; font-size: 1.3em; }
+    .notation-row .val.bad { color: #e06c75; }
+
+    .props-grid { display: grid; grid-template-columns: repeat(4, auto); gap: 4px 24px; }
+    .props-grid .pk { color: #888; font-size: 0.8em; }
+    .props-grid .pv { color: #c0c0c0; }
+
+    .col-symbols-row { margin-top: 10px; font-size: 0.82em; color: #666; }
+    .col-sym-entry { display: inline-block; margin-right: 10px; }
+    .col-sym-entry .ci { font-weight: bold; }
+
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 0.88em; }
+    th { background: #1e1e1e; color: #888; font-weight: normal; padding: 6px 12px; border: 1px solid #2a2a2a; text-align: left; }
+    td { padding: 5px 12px; border: 1px solid #2a2a2a; }
+    tr:nth-child(even) td { background: #141414; }
+    .ok  { color: #98c379; }
+    .bad { color: #e06c75; }
+
+    .errors-box { background: #1a1010; border: 1px solid #5a2020; border-radius: 4px; padding: 12px; margin-top: 12px; }
+    .errors-box ul { margin: 0; padding-left: 18px; color: #e06c75; font-size: 0.88em; }
+  </style>
+</head>
+<body>
+  <p><a href="/">← home</a></p>
+  <h1>Mixed Orthogonal Array Analyser</h1>
+  <p style="color:#888">Define column groups (s<sup>k</sup> = k columns with s symbols each), set the strength t, enter your array, then analyse.</p>
+
+  <!-- ── Controls ─────────────────────────────────────────────────────────── -->
+  <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+
+    <div>
+      <h2>Column groups</h2>
+      <div id="groups-container"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button onclick="addGroup()">+ Add group</button>
+        <button onclick="removeGroup()">− Remove group</button>
+      </div>
+    </div>
+
+    <div>
+      <h2>Rows &amp; Strength</h2>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label>Rows (N):&nbsp;
+          <input type="number" id="ctrl-rows" min="1" max="200" value="12" style="width:70px">
+        </label>
+        <label>Strength (t):&nbsp;
+          <input type="number" id="ctrl-t" min="1" max="6" value="2" style="width:70px">
+        </label>
+        <button onclick="buildGridFromGroups()">Build / Resize grid</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Grid ──────────────────────────────────────────────────────────────── -->
+  <h2>Array</h2>
+  <div id="moa-grid"></div>
+  <div style="display:flex;gap:8px">
+    <button class="primary" onclick="analyse()">Analyse</button>
+    <button class="danger" onclick="clearGrid()">Clear</button>
+  </div>
+  <div id="error"></div>
+
+  <!-- ── Results ───────────────────────────────────────────────────────────── -->
+  <div id="results">
+    <div class="summary-box">
+      <div class="notation-row" id="notations"></div>
+      <div class="props-grid" id="props"></div>
+      <div class="col-symbols-row" id="col-symbols-row"></div>
+    </div>
+
+    <h2>Strength checks</h2>
+    <table id="strength-table">
+      <thead><tr><th>t</th><th>Valid MOA at t?</th><th>Index λ</th><th>Notes</th></tr></thead>
+      <tbody id="strength-tbody"></tbody>
+    </table>
+
+    <div id="errors-section"></div>
+  </div>
+
+<script>
+// ── Colour palette for groups ─────────────────────────────────────────────────
+const GROUP_COLOURS = [
+  "#e8c76a", // yellow
+  "#56b6c2", // cyan
+  "#98c379", // green
+  "#c678dd", // purple
+  "#d19a66", // orange
+  "#61afef", // blue
+  "#e06c75", // red
+  "#2bbac5", // teal
+];
+
+// Symbol colours within a column (value → colour, 1-based)
+const SYMBOL_PALETTES = [
+  // For each group we derive a tinted palette; here we use brightness variants
+  // of each group colour.  Simple approach: lighten by mixing with white.
+  ["#e8c76a","#f5e0a0","#c9a840","#8a7020"],
+  ["#56b6c2","#90d4dc","#3090a0","#1a6070"],
+  ["#98c379","#c0e0a8","#70a050","#405830"],
+  ["#c678dd","#e0a8f0","#9050b8","#503070"],
+  ["#d19a66","#ecc090","#a07040","#604020"],
+  ["#61afef","#98ccf8","#3080c8","#185090"],
+  ["#e06c75","#f09ca0","#b04050","#702030"],
+  ["#2bbac5","#70d8e0","#1888a0","#0a5060"],
+];
+
+let groupCount = 0;
+let GRID_ROWS = 0, GRID_COLS = 0;
+let colGroupIndex = []; // per column: which group index it belongs to
+
+function groupColour(gIdx) {
+  return GROUP_COLOURS[gIdx % GROUP_COLOURS.length];
+}
+
+function symbolColour(gIdx, val) {
+  const pal = SYMBOL_PALETTES[gIdx % SYMBOL_PALETTES.length];
+  // val is 1-based; cycle through palette
+  return pal[(val - 1) % pal.length];
+}
+
+// ── Group management ──────────────────────────────────────────────────────────
+function addGroup() {
+  const idx = groupCount;
+  groupCount++;
+  const div = document.createElement("div");
+  div.className = "group-row";
+  div.id = `group-${idx}`;
+  const col = groupColour(idx);
+  div.innerHTML = `
+    <span class="glbl" style="color:${col}">Group ${idx + 1}</span>
+    <span class="group-swatch" style="background:${col}"></span>
+    <label>s: <input type="number" class="gs" min="2" max="20" value="2" style="width:55px"></label>
+    <label>k: <input type="number" class="gk" min="1" max="20" value="2" style="width:55px"></label>
+  `;
+  document.getElementById("groups-container").appendChild(div);
+}
+
+function removeGroup() {
+  const c = document.getElementById("groups-container");
+  if (c.children.length > 0) {
+    c.removeChild(c.lastChild);
+    groupCount--;
+  }
+}
+
+function getGroups() {
+  const rows = document.querySelectorAll(".group-row");
+  return Array.from(rows).map((row, i) => ({
+    s: parseInt(row.querySelector(".gs").value) || 2,
+    k: parseInt(row.querySelector(".gk").value) || 1,
+    idx: i,
+  }));
+}
+
+// ── Grid build ────────────────────────────────────────────────────────────────
+function buildGridFromGroups() {
+  const rows = parseInt(document.getElementById("ctrl-rows").value) || 8;
+  const groups = getGroups();
+  if (!groups.length) {
+    document.getElementById("error").textContent = "Add at least one group first.";
+    return;
+  }
+  document.getElementById("error").textContent = "";
+
+  // Assign group index per column
+  colGroupIndex = [];
+  groups.forEach(g => {
+    for (let c = 0; c < g.k; c++) colGroupIndex.push(g.idx);
+  });
+  const cols = colGroupIndex.length;
+
+  GRID_ROWS = rows;
+  GRID_COLS = cols;
+
+  // Build header: group colour bands
+  let colIdx = 0;
+  const headerCells = groups.map(g => {
+    const col = groupColour(g.idx);
+    const cell = `<th colspan="${g.k}" style="color:${col};border-bottom:2px solid ${col}">` +
+                 `${g.s}<sup>${g.k}</sup></th>`;
+    colIdx += g.k;
+    return cell;
+  }).join("");
+
+  const colHeaders = Array.from({length: cols}, (_, c) => {
+    const gi = colGroupIndex[c];
+    const col = groupColour(gi);
+    return `<th style="color:${col}">C${c + 1}</th>`;
+  }).join("");
+
+  const bodyRows = Array.from({length: rows}, (_, r) =>
+    `<tr><th>R${r + 1}</th>` +
+    Array.from({length: cols}, (_, c) => {
+      const gi = colGroupIndex[c];
+      const initCol = symbolColour(gi, 1);
+      return `<td><input type="number" min="1" max="99" id="cell-${r}-${c}" value="1"
+        data-gi="${gi}"
+        oninput="recolourCell(this)" style="color:${initCol}"></td>`;
+    }).join("") +
+    `</tr>`
+  ).join("");
+
+  document.getElementById("moa-grid").innerHTML = `<table>
+    <thead>
+      <tr><th></th>${headerCells}</tr>
+      <tr><th></th>${colHeaders}</tr>
+    </thead>
+    <tbody>${bodyRows}</tbody>
+  </table>`;
+}
+
+function recolourCell(el) {
+  const gi = parseInt(el.dataset.gi);
+  const v = parseInt(el.value);
+  el.style.color = isNaN(v) || v < 1 ? "#d4d4d4" : symbolColour(gi, v);
+}
+
+function clearGrid() {
+  for (let r = 0; r < GRID_ROWS; r++)
+    for (let c = 0; c < GRID_COLS; c++) {
+      const el = document.getElementById(`cell-${r}-${c}`);
+      if (!el) continue;
+      el.value = 1;
+      recolourCell(el);
+    }
+}
+
+function getArray() {
+  const arr = [];
+  for (let r = 0; r < GRID_ROWS; r++) {
+    const row = [];
+    for (let c = 0; c < GRID_COLS; c++) {
+      const el = document.getElementById(`cell-${r}-${c}`);
+      row.push(el ? (parseInt(el.value) || 1) : 1);
+    }
+    arr.push(row);
+  }
+  return arr;
+}
+
+// ── Analyse ───────────────────────────────────────────────────────────────────
+async function analyse() {
+  document.getElementById("error").textContent = "";
+  document.getElementById("errors-section").innerHTML = "";
+
+  if (GRID_COLS === 0) {
+    document.getElementById("error").textContent = "Build the grid first.";
+    return;
+  }
+
+  const groups = getGroups().map(g => ({s: g.s, k: g.k}));
+  const array  = getArray();
+  const t      = parseInt(document.getElementById("ctrl-t").value) || 2;
+
+  const resp = await fetch("/api/moa", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({array, groups, t}),
+  });
+  const data = await resp.json();
+
+  if (data.error) {
+    document.getElementById("error").textContent = data.error;
+    return;
+  }
+
+  renderResults(data);
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderResults(d) {
+  document.getElementById("results").style.display = "block";
+
+  const badClass = d.is_valid_moa ? "" : " bad";
+
+  document.getElementById("notations").innerHTML = `
+    <div class="block">
+      <span class="key">MOA Notation</span>
+      <span class="val${badClass}">${d.moa_notation}</span>
+    </div>
+    <div class="block">
+      <span class="key">Index (λ)</span>
+      <span class="val${badClass}">${d.index !== null ? d.index : "—"}</span>
+    </div>
+  `;
+
+  const groupsDesc = d.groups.map(g => `${g.s}<sup>${g.k}</sup>`).join(" · ");
+  document.getElementById("props").innerHTML = `
+    <span class="pk">N (runs)</span>      <span class="pv">${d.N}</span>
+    <span class="pk">k (columns)</span>   <span class="pv">${d.k}</span>
+    <span class="pk">Groups</span>        <span class="pv">${groupsDesc}</span>
+    <span class="pk">t (strength)</span>  <span class="pv">${d.strength || "—"}</span>
+  `;
+
+  // Per-column symbol summary
+  const colSymHtml = d.col_symbols.map((syms, c) =>
+    `<span class="col-sym-entry"><span class="ci">C${c+1}</span>: {${syms.join(",")}}</span>`
+  ).join(" ");
+  document.getElementById("col-symbols-row").innerHTML =
+    `<span style="color:#555">Observed symbols per column: </span>` + colSymHtml;
+
+  // Strength table
+  const tbody = document.getElementById("strength-tbody");
+  tbody.innerHTML = d.strength_checks.map(sc => {
+    const cls = sc.valid ? "ok" : "bad";
+    const sym = sc.valid ? "✓" : "✗";
+    return `<tr>
+      <td>${sc.t}</td>
+      <td class="${cls}">${sym} ${sc.valid ? "Yes" : "No"}</td>
+      <td>${sc.lambda !== null ? sc.lambda : "—"}</td>
+      <td style="color:#666;font-size:0.85em;white-space:pre-wrap">${sc.detail}</td>
+    </tr>`;
+  }).join("");
+
+  // Errors
+  if (d.errors && d.errors.length) {
+    document.getElementById("errors-section").innerHTML =
+      `<div class="errors-box"><ul>` +
+      d.errors.map(e => `<li>${e}</li>`).join("") +
+      `</ul></div>`;
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+addGroup();   // start with two default groups
+addGroup();
+</script>
+</body>
+</html>
