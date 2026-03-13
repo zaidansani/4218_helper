@@ -17,8 +17,9 @@ from tway.core import generate_tway
 from tway.display import tway_result
 from oa.core import analyse_oa
 from moa.core import analyse_moa
+from interaction_strength.fault_logic import analyse_fault
 
-app = Flask(__name__, template_folder="templates")
+app = Flask(__name__, template_folder="templates", static_folder="static")
 
 
 @app.route("/")
@@ -167,6 +168,43 @@ def api_moa():
             "errors": result.errors,
             "strength_checks": result.strength_checks,
         })
+
+    except (ValueError, TypeError, KeyError) as e:
+        return jsonify({"error": str(e)}), 400
+
+
+# ── Fault Analysis ─────────────────────────────────────────────────────────────
+
+@app.route("/fault")
+def fault_page():
+    return render_template("fault.html")
+
+
+@app.route("/api/fault", methods=["POST"])
+def api_fault():
+    data = request.get_json()
+    try:
+        raw = data.get("array", [])
+        faults_raw = data.get("faults", [])  # list of booleans
+
+        if not raw:
+            return jsonify({"error": "No array provided."}), 400
+        if not faults_raw or len(faults_raw) != len(raw):
+            return jsonify({"error": "Invalid fault data."}), 400
+
+        # Parse array
+        array = []
+        for row in raw:
+            parsed_row = []
+            for cell in row:
+                val = str(cell).strip()
+                if val == "":
+                    return jsonify({"error": "Array contains empty cells."}), 400
+                parsed_row.append(int(val))
+            array.append(parsed_row)
+
+        results = analyse_fault(array, faults_raw)
+        return jsonify({"results": results})
 
     except (ValueError, TypeError, KeyError) as e:
         return jsonify({"error": str(e)}), 400

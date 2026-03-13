@@ -1,0 +1,489 @@
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ *  Theme variables
+ *  To change the look, edit the values inside :root below.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+:root {
+    /* ── Page chrome  (Tailwind mist / slate scale) ───────────────────────── */
+    --bg:          #1e293b; /* slate-800  — page background */
+    --bg-surface:  #0f172a; /* slate-900  — card / panel background */
+    --bg-raised:   #334155; /* slate-700  — button / table-header background */
+    --bg-input:    #1e293b; /* slate-800  — text / number input background */
+    --bg-row-alt:  #0f172a; /* slate-900  — alternating table row */
+    --bg-error:    #1e1a2e; /* deep muted purple tint for error boxes */
+
+    /* ── Borders ─────────────────────────────────────────────────────────────── */
+    --border:        #334155; /* slate-700 */
+    --border-subtle: #1e293b; /* slate-800 */
+    --border-error:  #6d28d9; /* violet-700 */
+
+    /* ── Text  (Tailwind slate scale) ────────────────────────────────────────── */
+    --text:        #e2e8f0; /* slate-200 */
+    --text-muted:  #94a3b8; /* slate-400 */
+    --text-dim:    #64748b; /* slate-500 */
+    --text-heading:#cbd5e1; /* slate-300 */
+
+    /* ── Accent colours  (Tailwind teal scale) ───────────────────────────────── */
+    --accent:      #2dd4bf; /* teal-400  — links, h1, active tabs, highlights */
+    --accent-ok:   #14b8a6; /* teal-500  — success / covered */
+    --accent-bad:  #f87171; /* red-400   — error / missing */
+
+    /* ── Layout ──────────────────────────────────────────────────────────────── */
+    --max-width: 900px;
+    --page-margin: 40px auto;
+    --page-pad: 0 20px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ *  Reset / base
+ * ───────────────────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: sans-serif;
+    max-width: var(--max-width);
+    margin: var(--page-margin);
+    padding: var(--page-pad);
+    background: var(--bg);
+    color: var(--text);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ *  Typography
+ * ───────────────────────────────────────────────────────────────────────────── */
+h1 {
+    color: var(--accent);
+}
+
+h2 {
+    color: var(--text-heading);
+    font-size: 1em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 32px;
+}
+
+a {
+    color: var(--text-muted);
+    text-decoration: none;
+}
+a:hover {
+    color: var(--accent);
+}
+
+label {
+    color: var(--text-muted);
+    font-size: 0.85em;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ *  Form controls
+ * ───────────────────────────────────────────────────────────────────────────── */
+input[type="number"],
+input[type="text"] {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+input[type="number"] {
+    width: 70px;
+}
+input[type="text"] {
+    width: 160px;
+}
+
+button {
+    background: var(--bg-raised);
+    border: 1px solid #444;
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+button.primary {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+button.danger {
+    border-color: var(--accent-bad);
+    color: var(--accent-bad);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ *  Tables
+ * ───────────────────────────────────────────────────────────────────────────── */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 8px;
+    font-size: 0.88em;
+}
+th {
+    background: var(--bg-raised);
+    color: var(--text-muted);
+    font-weight: normal;
+    padding: 6px 12px;
+    border: 1px solid var(--border-subtle);
+    text-align: left;
+}
+td {
+    padding: 5px 12px;
+    border: 1px solid var(--border-subtle);
+}
+tr:nth-child(even) td {
+    background: var(--bg-row-alt);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ *  Status helpers
+ * ───────────────────────────────────────────────────────────────────────────── */
+.ok {
+    color: var(--accent-ok);
+}
+.bad {
+    color: var(--accent-bad);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ *  Summary / results boxes
+ * ───────────────────────────────────────────────────────────────────────────── */
+#results {
+    margin-top: 32px;
+    display: none;
+}
+#error {
+    color: var(--accent-bad);
+    margin-top: 12px;
+}
+
+.summary-box {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+/* Key-value pairs inside summary boxes */
+.summary-box .kv {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.summary-box .kv > div {
+    display: flex;
+    flex-direction: column;
+}
+.summary-box .kv .key {
+    color: var(--text-muted);
+    font-size: 0.8em;
+}
+.summary-box .kv .val {
+    color: var(--accent);
+    font-size: 1.1em;
+}
+
+/* Notation-style rows (OA / MOA) */
+.notation-row {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+.notation-row .block {
+    display: flex;
+    flex-direction: column;
+}
+.notation-row .key {
+    color: var(--text-muted);
+    font-size: 0.8em;
+    margin-bottom: 2px;
+}
+.notation-row .val {
+    color: var(--accent);
+    font-size: 1.3em;
+}
+.notation-row .val.bad {
+    color: var(--accent-bad);
+}
+
+/* Properties grid */
+.props-grid {
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    gap: 4px 24px;
+}
+.props-grid .pk {
+    color: var(--text-muted);
+    font-size: 0.8em;
+}
+.props-grid .pv {
+    color: var(--text-heading);
+}
+
+/* Error list box */
+.errors-box {
+    background: var(--bg-error);
+    border: 1px solid var(--border-error);
+    border-radius: 4px;
+    padding: 12px;
+    margin-top: 12px;
+}
+.errors-box ul {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--accent-bad);
+    font-size: 0.88em;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ *  Tab bar (tway)
+ * ───────────────────────────────────────────────────────────────────────────── */
+.tab-bar {
+    display: flex;
+    gap: 0;
+    margin-top: 24px;
+    border-bottom: 1px solid var(--border);
+}
+.tab {
+    padding: 8px 18px;
+    cursor: pointer;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+    border-bottom: none;
+    font-family: monospace;
+}
+.tab.active {
+    color: var(--accent);
+    border-color: var(--border);
+    background: var(--bg-surface);
+    margin-bottom: -1px;
+}
+.tab-panel {
+    display: none;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    padding: 16px;
+}
+.tab-panel.active {
+    display: block;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ *  Coverage proof (tway)
+ * ───────────────────────────────────────────────────────────────────────────── */
+.proof-section {
+    margin-top: 16px;
+}
+.proof-line {
+    padding: 3px 0;
+    font-size: 0.88em;
+    color: #a0a0a0;
+}
+.proof-line .tuple {
+    color: #56b6c2;
+}
+.proof-line .tc-label {
+    color: var(--text-muted);
+}
+.proof-line .hi {
+    color: var(--accent);
+    font-weight: bold;
+}
+.proof-line .missing {
+    color: var(--accent-bad);
+}
+.coverage-summary {
+    margin-top: 12px;
+    color: var(--text-muted);
+    font-size: 0.85em;
+}
+.coverage-summary .ok {
+    color: var(--accent-ok);
+}
+.coverage-summary .bad {
+    color: var(--accent-bad);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ *  Factor rows (tway)
+ * ───────────────────────────────────────────────────────────────────────────── */
+#factors-container {
+    margin: 16px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.factor-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+.factor-row .lbl {
+    color: var(--text-muted);
+    min-width: 60px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ *  Editable grid (oa / moa)
+ * ───────────────────────────────────────────────────────────────────────────── */
+.grid-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+.grid-controls label {
+    color: var(--text-muted);
+    font-size: 0.85em;
+}
+.grid-controls input[type="number"] {
+    width: 60px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+#oa-grid,
+#moa-grid {
+    overflow-x: auto;
+    margin-bottom: 12px;
+}
+#oa-grid table,
+#moa-grid table {
+    border-collapse: collapse;
+}
+#oa-grid th,
+#moa-grid th {
+    background: var(--bg-raised);
+    color: var(--text-muted);
+    padding: 4px 10px;
+    border: 1px solid var(--border-subtle);
+    font-weight: normal;
+    font-size: 0.8em;
+}
+#oa-grid td,
+#moa-grid td {
+    border: 1px solid var(--border-subtle);
+    padding: 0;
+}
+#oa-grid input,
+#moa-grid input {
+    width: 48px;
+    background: transparent;
+    border: none;
+    text-align: center;
+    padding: 5px 4px;
+    font-family: monospace;
+    font-size: 0.95em;
+    font-weight: bold;
+    outline: none;
+    transition: color 0.1s;
+}
+#oa-grid input:focus,
+#moa-grid input:focus {
+    background: var(--bg-raised);
+}
+#oa-grid tr:nth-child(even) td,
+#moa-grid tr:nth-child(even) td {
+    background: var(--bg-row-alt);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ *  Group rows (moa)
+ * ───────────────────────────────────────────────────────────────────────────── */
+#groups-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 12px 0;
+}
+.group-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.group-row .glbl {
+    color: var(--text-muted);
+    min-width: 56px;
+}
+.group-row input[type="number"] {
+    width: 62px;
+}
+.group-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    display: inline-block;
+}
+
+/* Per-column symbol summary (moa) */
+.col-symbols-row {
+    margin-top: 10px;
+    font-size: 0.82em;
+    color: var(--text-dim);
+}
+.col-sym-entry {
+    display: inline-block;
+    margin-right: 10px;
+}
+.col-sym-entry .ci {
+    font-weight: bold;
+}
+
+/* Group header colour band (moa) */
+.gh-band {
+    border-bottom: 2px solid;
+    padding-bottom: 3px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ *  Index page — card grid
+ * ───────────────────────────────────────────────────────────────────────────── */
+.cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 8px;
+}
+.card {
+    border: 1px solid #3e5c76;
+    border-radius: 6px;
+    padding: 24px;
+    text-decoration: none;
+    color: inherit;
+    background: var(--bg-surface);
+    transition: border-color 0.2s;
+}
+.card:hover {
+    border-color: var(--accent);
+}
+.card h2 {
+    margin: 0 0 8px;
+    color: var(--accent);
+    font-size: 1.1em;
+    text-transform: none;
+    letter-spacing: 0;
+}
+.card p {
+    margin: 0;
+    font-size: 0.85em;
+    color: var(--text);
+}

@@ -3,75 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Orthogonal Array Analyser</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: monospace; max-width: 900px; margin: 40px auto; padding: 0 20px; background: #0f0f0f; color: #d4d4d4; }
-    a { color: #888; text-decoration: none; }
-    a:hover { color: #e8c76a; }
-    h1 { color: #e8c76a; }
-    h2 { color: #c0c0c0; font-size: 1em; text-transform: uppercase; letter-spacing: 1px; margin-top: 32px; }
-
-    button {
-      background: #1e1e1e; border: 1px solid #444; color: #d4d4d4;
-      padding: 6px 14px; border-radius: 4px; cursor: pointer; font-family: monospace;
-    }
-    button:hover { border-color: #e8c76a; color: #e8c76a; }
-    button.primary { border-color: #e8c76a; color: #e8c76a; }
-    button.danger   { border-color: #e06c75; color: #e06c75; }
-
-    .grid-controls { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
-    .grid-controls label { color: #888; font-size: 0.85em; }
-    .grid-controls input[type=number] {
-      width: 60px; background: #1a1a1a; border: 1px solid #333; color: #d4d4d4;
-      padding: 4px 6px; border-radius: 4px; font-family: monospace;
-    }
-
-    /* Editable grid */
-    #oa-grid { overflow-x: auto; margin-bottom: 12px; }
-    #oa-grid table { border-collapse: collapse; }
-    #oa-grid th {
-      background: #1e1e1e; color: #888; padding: 4px 10px;
-      border: 1px solid #2a2a2a; font-weight: normal; font-size: 0.8em;
-    }
-    #oa-grid td { border: 1px solid #2a2a2a; padding: 0; }
-    #oa-grid input {
-      width: 48px; background: transparent; border: none;
-      text-align: center; padding: 5px 4px; font-family: monospace; font-size: 0.95em;
-      font-weight: bold; outline: none; transition: color 0.1s;
-    }
-    #oa-grid input:focus { background: #1e1e1e; }
-    #oa-grid tr:nth-child(even) td { background: #141414; }
-
-    #error { color: #e06c75; margin-top: 12px; }
-
-    /* Results */
-    #results { margin-top: 32px; display: none; }
-
-    .summary-box {
-      background: #161616; border: 1px solid #333; border-radius: 6px;
-      padding: 16px; margin-bottom: 16px;
-    }
-    .notation-row { display: flex; gap: 32px; flex-wrap: wrap; margin-bottom: 12px; }
-    .notation-row .block { display: flex; flex-direction: column; }
-    .notation-row .key { color: #888; font-size: 0.8em; margin-bottom: 2px; }
-    .notation-row .val { color: #e8c76a; font-size: 1.3em; }
-    .notation-row .val.bad { color: #e06c75; }
-
-    .props-grid { display: grid; grid-template-columns: repeat(4, auto); gap: 4px 24px; }
-    .props-grid .pk { color: #888; font-size: 0.8em; }
-    .props-grid .pv { color: #c0c0c0; }
-
-    .strength-table { margin-top: 16px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 0.88em; }
-    th { background: #1e1e1e; color: #888; font-weight: normal; padding: 6px 12px; border: 1px solid #2a2a2a; text-align: left; }
-    td { padding: 5px 12px; border: 1px solid #2a2a2a; }
-    tr:nth-child(even) td { background: #141414; }
-    .ok  { color: #98c379; }
-    .bad { color: #e06c75; }
-
-    .errors-box { background: #1a1010; border: 1px solid #5a2020; border-radius: 4px; padding: 12px; margin-top: 12px; }
-    .errors-box ul { margin: 0; padding-left: 18px; color: #e06c75; font-size: 0.88em; }
-  </style>
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <p><a href="/">← home</a></p>

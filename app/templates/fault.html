@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fault Interaction Strength Analyser</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <p><a href="/">← home</a></p>
+  <h1>Fault Interaction Strength Analyser</h1>
+  <p style="color:#888">Enter your test cases below and mark which ones result in a FAULT.</p>
+
+  <div class="grid-controls">
+    <label>Rows (N): <input type="number" id="ctrl-rows" min="1" max="100" value="8"></label>
+    <label>Columns (k): <input type="number" id="ctrl-cols" min="1" max="20" value="4"></label>
+    <button onclick="resizeGrid()">Resize</button>
+    <button class="danger" onclick="clearGrid()">Clear</button>
+  </div>
+
+  <div id="oa-grid"></div>
+
+  <div style="display:flex;gap:8px">
+    <button class="primary" onclick="analyse()">Analyse Strength</button>
+  </div>
+  <div id="error"></div>
+
+  <div id="results" style="display:none">
+    <div class="strength-table">
+      <h2>Interaction Strength Analysis (Separator Sets)</h2>
+      <p style="color: #888; font-size: 0.9em; margin-bottom: 15px;">
+        A <b>Separator Set</b> is a group of columns where the observed values in faulty rows never appear in successful rows. 
+        This indicates that interactions within these columns effectively partition the faults.
+      </p>
+      <table id="strength-table">
+        <thead>
+            <tr>
+                <th>t</th>
+                <th>Separates?</th>
+                <th># Separator Sets</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody id="strength-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+let ROWS = 8, COLS = 4;
+
+const SYMBOL_COLOURS = [
+  "#e8c76a", "#56b6c2", "#98c379", "#e06c75", "#c678dd", "#d19a66", "#61afef", "#be5046", "#2bbac5"
+];
+
+function symbolColour(val) {
+  const idx = (val - 1) % SYMBOL_COLOURS.length;
+  return SYMBOL_COLOURS[Math.max(0, idx)];
+}
+
+function buildGrid(rows, cols) {
+  ROWS = rows; COLS = cols;
+  const container = document.getElementById("oa-grid");
+  const colHeaders = Array.from({length: cols}, (_, i) => `<th>C${i+1}</th>`).join("");
+  const bodyRows = Array.from({length: rows}, (_, r) =>
+    `<tr><th>R${r+1}</th>` +
+    Array.from({length: cols}, (_, c) =>
+      `<td><input type="number" min="1" max="99" id="cell-${r}-${c}" value="1"
+        oninput="this.style.color=symbolColour(parseInt(this.value)||1)"></td>`
+    ).join("") +
+    `<td style="background:#222; border-left: 2px solid #444">
+        <label style="font-size: 0.8em; color: #aaa"><input type="checkbox" id="fault-${r}"> FAULT</label>
+     </td>` +
+    `</tr>`
+  ).join("");
+  container.innerHTML = `<table>
+    <thead><tr><th></th>${colHeaders}<th>Result</th></tr></thead>
+    <tbody>${bodyRows}</tbody>
+  </table>`;
+  recolourAll();
+}
+
+function recolourAll() {
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const el = document.getElementById(`cell-${r}-${c}`);
+      if (!el) continue;
+      const v = parseInt(el.value);
+      el.style.color = isNaN(v) ? "#d4d4d4" : symbolColour(v);
+    }
+  }
+}
+
+function resizeGrid() {
+  const rows = parseInt(document.getElementById("ctrl-rows").value);
+  const cols = parseInt(document.getElementById("ctrl-cols").value);
+  const oldArr = getArray();
+  const oldFaults = getFaults();
+  buildGrid(rows, cols);
+  for (let r = 0; r < Math.min(rows, oldArr.length); r++) {
+    for (let c = 0; c < Math.min(cols, (oldArr[r]||[]).length); c++) {
+      const el = document.getElementById(`cell-${r}-${c}`);
+      el.value = oldArr[r][c];
+      el.style.color = symbolColour(oldArr[r][c]);
+    }
+    const fEl = document.getElementById(`fault-${r}`);
+    if (fEl) fEl.checked = oldFaults[r];
+  }
+}
+
+function clearGrid() {
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const el = document.getElementById(`cell-${r}-${c}`);
+      el.value = 1;
+      el.style.color = symbolColour(1);
+    }
+    document.getElementById(`fault-${r}`).checked = false;
+  }
+}
+
+function getArray() {
+  const arr = [];
+  for (let r = 0; r < ROWS; r++) {
+    const row = [];
+    for (let c = 0; c < COLS; c++) {
+      const el = document.getElementById(`cell-${r}-${c}`);
+      row.push(el ? parseInt(el.value) : 1);
+    }
+    arr.push(row);
+  }
+  return arr;
+}
+
+function getFaults() {
+  const faults = [];
+  for (let r = 0; r < ROWS; r++) {
+    const el = document.getElementById(`fault-${r}`);
+    faults.push(el ? el.checked : false);
+  }
+  return faults;
+}
+
+async function analyse() {
+  document.getElementById("error").textContent = "";
+  const array = getArray();
+  const faults = getFaults();
+
+  if (!faults.some(f => f)) {
+      document.getElementById("error").textContent = "Please mark at least one row as a FAULT.";
+      return;
+  }
+  if (faults.every(f => f)) {
+      document.getElementById("error").textContent = "Cannot analyse if ALL rows are faults. Need at least one successful test case.";
+      return;
+  }
+
+  const resp = await fetch("/api/fault", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({array, faults}),
+  });
+  const data = await resp.json();
+
+  if (data.error) {
+    document.getElementById("error").textContent = data.error;
+    return;
+  }
+
+  renderResults(data.results);
+}
+
+function renderResults(results) {
+  document.getElementById("results").style.display = "block";
+  const tbody = document.getElementById("strength-tbody");
+  tbody.innerHTML = results.map((res, i) => {
+    const cls = res.valid ? "ok" : "bad";
+    const symbol = res.valid ? "✓" : "✗";
+    const note = res.valid 
+        ? `Found ${res.separator_count} column set(s) of size ${res.t} that separate faults.`
+        : `No set of ${res.t} columns completely partitions the faults.`;
+    
+    let separatorsHtml = "";
+    if (res.valid && res.separators && res.separators.length > 0) {
+        separatorsHtml = `
+            <div id="combo-container-${i}" style="margin-top: 8px; display: none; background: #1a1a1a; padding: 10px; border-radius: 4px; border: 1px solid #333">
+                <div style="font-weight: bold; margin-bottom: 5px; color: #ccc">Distinguishing Column Sets:</div>
+                ${res.separators.map((sep, sepIdx) => {
+                    const colNames = sep.cols.map(c => `C${c+1}`).join(", ");
+                    const faultValues = sep.unique_fault_tuples.map(vals => {
+                        const items = vals.map((v, vIdx) => `<span style="color: ${symbolColour(v)}">${v}</span>`).join(",");
+                        return `<span style="background: #222; padding: 2px 4px; border-radius: 2px; border: 1px solid #444; margin-right: 4px">(${items})</span>`;
+                    }).join(" ");
+                    
+                    return `
+                        <div style="margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #222">
+                            <div style="color: #56b6c2; font-family: monospace; font-weight: bold; margin-bottom: 3px">{ ${colNames} }</div>
+                            <div style="font-size: 0.9em; color: #aaa; margin-bottom: 3px">Fault-only values:</div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 4px">${faultValues}</div>
+                        </div>
+                    `;
+                }).join("")}
+            </div>
+            <button onclick="toggleCombos(${i})" style="margin-top: 5px; padding: 4px 8px; font-size: 0.8em">
+                Show/Hide Details
+            </button>
+        `;
+    }
+
+    return `<tr>
+      <td>${res.t}</td>
+      <td class="${cls}">${symbol} ${res.valid ? "Yes" : "No"}</td>
+      <td>${res.separator_count || 0}</td>
+      <td style="color:#666;font-size:0.85em">
+        ${note}
+        ${separatorsHtml}
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+function toggleCombos(idx) {
+    const el = document.getElementById(`combo-container-${idx}`);
+    if (el) {
+        el.style.display = el.style.display === "none" ? "block" : "none";
+    }
+}
+
+buildGrid(ROWS, COLS);
+</script>
+
+<style>
+.ok { color: #98c379; font-weight: bold; }
+.bad { color: #e06c75; font-weight: bold; }
+</style>
+</body>
+</html>

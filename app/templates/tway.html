@@ -3,68 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>T-way Covering Array</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: monospace; max-width: 900px; margin: 40px auto; padding: 0 20px; background: #0f0f0f; color: #d4d4d4; }
-    a { color: #888; text-decoration: none; }
-    a:hover { color: #e8c76a; }
-    h1 { color: #e8c76a; }
-    h2 { color: #c0c0c0; font-size: 1em; text-transform: uppercase; letter-spacing: 1px; margin-top: 32px; }
-
-    label { color: #888; font-size: 0.85em; }
-    input[type=number], input[type=text] {
-      background: #1a1a1a; border: 1px solid #333; color: #d4d4d4;
-      padding: 5px 8px; border-radius: 4px; font-family: monospace;
-    }
-    input[type=number] { width: 70px; }
-    input[type=text]   { width: 160px; }
-
-    #factors-container { margin: 16px 0; display: flex; flex-direction: column; gap: 8px; }
-    .factor-row { display: flex; gap: 12px; align-items: center; }
-    .factor-row .lbl { color: #888; min-width: 60px; }
-
-    button {
-      background: #1e1e1e; border: 1px solid #444; color: #d4d4d4;
-      padding: 6px 14px; border-radius: 4px; cursor: pointer; font-family: monospace;
-    }
-    button:hover { border-color: #e8c76a; color: #e8c76a; }
-    button.primary { border-color: #e8c76a; color: #e8c76a; }
-
-    #error { color: #e06c75; margin-top: 12px; }
-
-    /* Results */
-    #results { margin-top: 32px; display: none; }
-
-    .summary-box {
-      background: #161616; border: 1px solid #333; border-radius: 6px;
-      padding: 16px; margin-bottom: 16px;
-    }
-    .summary-box .kv { display: flex; gap: 16px; flex-wrap: wrap; }
-    .summary-box .kv div { display: flex; flex-direction: column; }
-    .summary-box .kv .key { color: #888; font-size: 0.8em; }
-    .summary-box .kv .val { color: #e8c76a; font-size: 1.1em; }
-
-    table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 0.88em; }
-    th { background: #1e1e1e; color: #888; font-weight: normal; padding: 6px 12px; border: 1px solid #2a2a2a; text-align: left; }
-    td { padding: 5px 12px; border: 1px solid #2a2a2a; }
-    tr:nth-child(even) td { background: #141414; }
-
-    .proof-section { margin-top: 16px; }
-    .proof-line { padding: 3px 0; font-size: 0.88em; color: #a0a0a0; }
-    .proof-line .tuple { color: #56b6c2; }
-    .proof-line .tc-label { color: #888; }
-    .proof-line .hi { color: #e8c76a; font-weight: bold; }
-    .proof-line .missing { color: #e06c75; }
-    .coverage-summary { margin-top: 12px; color: #888; font-size: 0.85em; }
-    .coverage-summary .ok  { color: #98c379; }
-    .coverage-summary .bad { color: #e06c75; }
-
-    .tab-bar { display: flex; gap: 0; margin-top: 24px; border-bottom: 1px solid #333; }
-    .tab { padding: 8px 18px; cursor: pointer; color: #888; border: 1px solid transparent; border-bottom: none; font-family: monospace; }
-    .tab.active { color: #e8c76a; border-color: #333; background: #161616; margin-bottom: -1px; }
-    .tab-panel { display: none; background: #161616; border: 1px solid #333; border-top: none; padding: 16px; }
-    .tab-panel.active { display: block; }
-  </style>
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <p><a href="/">← home</a></p>
